@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>แผนการศึกษาระยะยาว - ลูกรัก</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { 
+            font-family: 'Prompt', sans-serif; 
+            background-color: #f8fafc;
+            background-image: linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%);
+        }
+        .glass-card { 
+            background: rgba(255, 255, 255, 0.9); 
+            backdrop-filter: blur(10px); 
+            border: 1px solid rgba(255, 255, 255, 0.5); 
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+        }
+        .input-pastel {
+            border: 1px solid #e2e8f0;
+            background-color: #ffffff;
+            transition: all 0.3s ease;
+        }
+        .input-pastel:focus {
+            outline: none;
+            border-color: #93c5fd;
+            box-shadow: 0 0 0 3px rgba(147, 197, 253, 0.3);
+        }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
+</head>
+<body class="text-gray-700 p-2 md:p-6 min-h-screen">
+    <div class="max-w-7xl mx-auto space-y-6">
+        <!-- Header -->
+        <div class="glass-card rounded-3xl p-6 md:p-8">
+            <div class="flex flex-col md:flex-row justify-between items-center gap-6">
+                <div class="text-center md:text-left">
+                    <h1 class="text-3xl font-bold text-indigo-500 flex items-center justify-center md:justify-start gap-3">
+                        🎒 แผนการศึกษาระยะยาว
+                    </h1>
+                    <p class="text-gray-500 mt-2">ประเมินค่าใช้จ่ายตั้งแต่ Nursery ถึง มัธยม 6</p>
+                </div>
+                <div class="flex flex-wrap gap-4 items-center bg-indigo-50/50 p-4 rounded-2xl w-full md:w-auto">
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-500 mb-1">ชื่อลูก</label>
+                        <input type="text" id="childNameInput" value="น้อง (ลูกชาย)" class="input-pastel rounded-xl p-2 text-sm w-32 font-medium">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-500 mb-1">วันเกิด</label>
+                        <input type="date" id="dobInput" value="2026-05-10" class="input-pastel rounded-xl p-2 text-sm w-36 font-medium cursor-pointer">
+                    </div>
+                    <div>
+                        <button onclick="resetData()" class="mt-4 bg-red-100 hover:bg-red-200 text-red-600 px-3 py-2 rounded-xl text-xs font-semibold transition">
+                            ล้างข้อมูลทั้งหมด
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dashboard -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="glass-card rounded-3xl p-6 lg:col-span-1 flex flex-col justify-center bg-gradient-to-br from-indigo-500 to-purple-500 text-white shadow-lg relative overflow-hidden">
+                <div class="absolute -right-10 -top-10 w-40 h-40 bg-white opacity-10 rounded-full blur-2xl"></div>
+                <h2 class="text-lg font-medium opacity-90 mb-2">รวมค่าใช้จ่ายโดยประมาณทั้งหมด</h2>
+                <div class="text-4xl lg:text-5xl font-bold mb-4" id="grandTotalDisplay">0 ฿</div>
+                <div class="space-y-3 mt-4 border-t border-white/20 pt-4">
+                    <div class="flex justify-between items-center text-sm">
+                        <span class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-[#60a5fa]"></span> รวมค่าเทอม (รายปี)</span>
+                        <span id="totalTuitionDisplay" class="font-semibold">0 ฿</span>
+                    </div>
+                    <div class="flex justify-between items-center text-sm">
+                        <span class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-[#f472b6]"></span> รวมค่าแรกเข้า</span>
+                        <span id="totalEntranceDisplay" class="font-semibold">0 ฿</span>
+                    </div>
+                    <div class="flex justify-between items-center text-sm">
+                        <span class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-[#fbbf24]"></span> รวมเรียนพิเศษ/อื่นๆ</span>
+                        <span id="totalExtraDisplay" class="font-semibold">0 ฿</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="glass-card rounded-3xl p-6 lg:col-span-2">
+                <h2 class="text-lg font-semibold text-gray-700 mb-4">📊 กราฟสรุปภาระค่าใช้จ่ายแต่ละปีการศึกษา</h2>
+                <div class="relative h-64 w-full">
+                    <canvas id="costChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Timeline Container -->
+        <div id="timelineSections" class="space-y-8 mt-4"></div>
+    </div>
+
+    <script>
+        const phases = [
+            { id: 'preschool', title: '🐣 ระดับปฐมวัย (Nursery - อนุบาล 3)', color: 'from-pink-100 to-orange-50' },
+            { id: 'primary', title: '👦 ระดับประถมศึกษา (ป.1 - ป.6)', color: 'from-green-100 to-blue-50' },
+            { id: 'secondary', title: '🧑 ระดับมัธยมศึกษา (ม.1 - ม.6)', color: 'from-purple-100 to-indigo-50' }
+        ];
+
+        // Default Data: All 0 and empty
+        const defaultEducationData = [
+            { id: 'N', phase: 'preschool', name: 'Nursery', ageOffset: 2, school: '', hasEntrance: false, entranceFee: 0, termFee: 0, terms: 2, extraFee: 0 },
+            { id: 'K1', phase: 'preschool', name: 'อนุบาล 1', ageOffset: 3, school: '', hasEntrance: false, entranceFee: 0, termFee: 0, terms: 2, extraFee: 0 },
+            { id: 'K2', phase: 'preschool', name: 'อนุบาล 2', ageOffset: 4, school: '', hasEntrance: false, entranceFee: 0, termFee: 0, terms: 2, extraFee: 0 },
+            { id: 'K3', phase: 'preschool', name: 'อนุบาล 3', ageOffset: 5, school: '', hasEntrance: false, entranceFee: 0, termFee: 0, terms: 2, extraFee: 0 },
+            { id: 'P1', phase: 'primary', name: 'ประถม 1', ageOffset: 6, school: '', hasEntrance: false, entranceFee: 0, termFee: 0, terms: 2, extraFee: 0 },
+            { id: 'P2', phase: 'primary', name: 'ประถม 2', ageOffset: 7, school: '', hasEntrance: false, entranceFee: 0, termFee: 0, terms: 2, extraFee: 0 },
+            { id: 'P3', phase: 'primary', name: 'ประถม 3', ageOffset: 8, school: '', hasEntrance: false, entranceFee: 0, termFee: 0, terms: 2, extraFee: 0 },
+            { id: 'P4', phase: 'primary', name: 'ประถม 4', ageOffset: 9, school: '', hasEntrance: false, entranceFee: 0, termFee: 0, terms: 2, extraFee: 0 },
+            { id: 'P5', phase: 'primary', name: 'ประถม 5', ageOffset: 10, school: '', hasEntrance: false, entranceFee: 0, termFee: 0, terms: 2, extraFee: 0 },
+            { id: 'P6', phase: 'primary', name: 'ประถม 6', ageOffset: 11, school: '', hasEntrance: false, entranceFee: 0, termFee: 0, terms: 2, extraFee: 0 },
+            { id: 'M1', phase: 'secondary', name: 'มัธยม 1', ageOffset: 12, school: '', hasEntrance: false, entranceFee: 0, termFee: 0, terms: 2, extraFee: 0 },
+            { id: 'M2', phase: 'secondary', name: 'มัธยม 2', ageOffset: 13, school: '', hasEntrance: false, entranceFee: 0, termFee: 0, terms: 2, extraFee: 0 },
+            { id: 'M3', phase: 'secondary', name: 'มัธยม 3', ageOffset: 14, school: '', hasEntrance: false, entranceFee: 0, termFee: 0, terms: 2, extraFee: 0 },
+            { id: 'M4', phase: 'secondary', name: 'มัธยม 4', ageOffset: 15, school: '', hasEntrance: false, entranceFee: 0, termFee: 0, terms: 2, extraFee: 0 },
+            { id: 'M5', phase: 'secondary', name: 'มัธยม 5', ageOffset: 16, school: '', hasEntrance: false, entranceFee: 0, termFee: 0, terms: 2, extraFee: 0 },
+            { id: 'M6', phase: 'secondary', name: 'มัธยม 6', ageOffset: 17, school: '', hasEntrance: false, entranceFee: 0, termFee: 0, terms: 2, extraFee: 0 }
+        ];
+
+        let educationData = JSON.parse(JSON.stringify(defaultEducationData));
+        let costChart = null; 
+        const dobInput = document.getElementById('dobInput');
+        const childNameInput = document.getElementById('childNameInput');
+        const timelineSections = document.getElementById('timelineSections');
+        const fmt = new Intl.NumberFormat('th-TH');
+
+        function loadSavedData() {
+            const savedData = localStorage.getItem('eduPlannerDataV2'); // Changed key for fresh start
+            if (savedData) educationData = JSON.parse(savedData);
+            const savedDob = localStorage.getItem('eduPlannerDOB');
+            if (savedDob) dobInput.value = savedDob;
+            const savedName = localStorage.getItem('eduPlannerName');
+            if (savedName) childNameInput.value = savedName;
+        }
+
+        function saveData() {
+            localStorage.setItem('eduPlannerDataV2', JSON.stringify(educationData));
+            localStorage.setItem('eduPlannerDOB', dobInput.value);
+            localStorage.setItem('eduPlannerName', childNameInput.value);
+        }
+
+        function resetData() {
+            if(confirm('ต้องการรีเซ็ตข้อมูลทั้งหมดให้ว่างเปล่าหรือไม่?')) {
+                localStorage.removeItem('eduPlannerDataV2');
+                educationData = JSON.parse(JSON.stringify(defaultEducationData));
+                renderUI();
+                refreshDashboard();
+            }
+        }
+
+        function init() {
+            loadSavedData();
+            renderUI();
+            refreshDashboard();
+            dobInput.addEventListener('change', () => { saveData(); renderUI(); });
+            childNameInput.addEventListener('input', () => { saveData(); });
+        }
+
+        function calculateLevelTotal(level) {
+            const entrance = level.hasEntrance ? Number(level.entranceFee) : 0;
+            const tuition = Number(level.termFee) * Number(level.terms);
+            const extra = Number(level.extraFee);
+            return entrance + tuition + extra;
+        }
+
+        function getPhaseTotal(phaseId) {
+            return educationData.filter(d => d.phase === phaseId).reduce((sum, level) => sum + calculateLevelTotal(level), 0);
+        }
+
+        function renderUI() {
+            const dob = new Date(dobInput.value);
+            const birthYear = dob.getFullYear();
+            timelineSections.innerHTML = ''; 
+
+            phases.forEach(phase => {
+                const levels = educationData.filter(d => d.phase === phase.id);
+                let cardsHtml = '';
+                
+                levels.forEach((level) => {
+                    const targetYearBE = birthYear + level.ageOffset + 543;
+                    cardsHtml += `
+                        <div class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 hover:shadow-md transition relative">
+                            <div class="flex justify-between items-center mb-3 pb-2 border-b border-gray-100">
+                                <div class="font-bold text-gray-700 text-lg">${level.name}</div>
+                                <div class="text-xs bg-gray-100 px-2 py-1 rounded-full text-gray-600 font-medium">
+                                    อายุ ${level.ageOffset} ขวบ (ปี ${targetYearBE})
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="text-[11px] text-gray-500 font-semibold uppercase tracking-wider block mb-1">ชื่อโรงเรียน</label>
+                                <input type="text" 
+                                    id="school-${level.id}"
+                                    onfocus="this.setAttribute('data-old', this.value)"
+                                    oninput="handleCascadeInput('${level.id}', 'school', this)" 
+                                    value="${level.school}" 
+                                    class="input-pastel w-full text-sm p-2 rounded-lg" 
+                                    placeholder="ระบุชื่อโรงเรียน...">
+                            </div>
+                            <div class="mb-3 bg-gray-50 p-2 rounded-lg border border-gray-100">
+                                <label class="flex items-center gap-2 cursor-pointer mb-2">
+                                    <input type="checkbox" id="hasEntrance-${level.id}" onchange="toggleEntrance('${level.id}', this.checked)" ${level.hasEntrance ? 'checked' : ''} class="w-4 h-4 text-indigo-500 rounded focus:ring-indigo-400">
+                                    <span class="text-sm font-medium text-gray-700">มีค่าแรกเข้า / มอบตัว</span>
+                                </label>
+                                <div class="flex items-center gap-2 ${level.hasEntrance ? '' : 'opacity-40 pointer-events-none'}" id="entrance-wrap-${level.id}">
+                                    <input type="text" inputmode="numeric" pattern="[0-9]*"
+                                        id="entranceFee-${level.id}"
+                                        onfocus="this.setAttribute('data-old', this.value)"
+                                        oninput="handleCascadeInput('${level.id}', 'entranceFee', this)" 
+                                        value="${level.entranceFee || ''}" 
+                                        class="input-pastel w-full text-sm p-2 rounded-lg text-right" 
+                                        ${!level.hasEntrance ? 'disabled' : ''}
+                                        placeholder="0">
+                                    <span class="text-sm text-gray-500">฿</span>
+                                </div>
+                            </div>
+                            <div class="mb-3 grid grid-cols-2 gap-2">
+                                <div>
+                                    <label class="text-[11px] text-gray-500 font-semibold uppercase tracking-wider block mb-1">ค่าเทอม/เทอม</label>
+                                    <input type="text" inputmode="numeric" pattern="[0-9]*"
+                                        id="termFee-${level.id}"
+                                        onfocus="this.setAttribute('data-old', this.value)"
+                                        oninput="handleCascadeInput('${level.id}', 'termFee', this)" 
+                                        value="${level.termFee || ''}" 
+                                        class="input-pastel w-full text-sm p-2 rounded-lg text-right"
+                                        placeholder="0">
+                                </div>
+                                <div>
+                                    <label class="text-[11px] text-gray-500 font-semibold uppercase tracking-wider block mb-1">จำนวนเทอม/ปี</label>
+                                    <select id="terms-${level.id}" onchange="handleCascadeInput('${level.id}', 'terms', this, true)" class="input-pastel w-full text-sm p-2 rounded-lg">
+                                        <option value="1" ${level.terms == 1 ? 'selected' : ''}>1 เทอม</option>
+                                        <option value="2" ${level.terms == 2 ? 'selected' : ''}>2 เทอม</option>
+                                        <option value="3" ${level.terms == 3 ? 'selected' : ''}>3 เทอม</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="mb-4">
+                                <label class="text-[11px] text-gray-500 font-semibold uppercase tracking-wider block mb-1">ค่าเรียนพิเศษ/อื่นๆ (ต่อปี)</label>
+                                <div class="flex items-center gap-2">
+                                    <input type="text" inputmode="numeric" pattern="[0-9]*"
+                                        id="extraFee-${level.id}"
+                                        onfocus="this.setAttribute('data-old', this.value)"
+                                        oninput="handleCascadeInput('${level.id}', 'extraFee', this)" 
+                                        value="${level.extraFee || ''}" 
+                                        class="input-pastel w-full text-sm p-2 rounded-lg text-right"
+                                        placeholder="0">
+                                    <span class="text-sm text-gray-500">฿</span>
+                                </div>
+                            </div>
+                            <div class="mt-auto bg-indigo-50 text-indigo-700 p-3 rounded-xl flex justify-between items-center border border-indigo-100">
+                                <span class="text-sm font-semibold">รวมปีนี้</span>
+                                <span class="text-lg font-bold" id="total-${level.id}">${fmt.format(calculateLevelTotal(level))} ฿</span>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                const sectionHtml = `
+                    <div class="glass-card rounded-3xl overflow-hidden">
+                        <div class="bg-gradient-to-r ${phase.color} px-6 py-4 border-b border-white/50 flex flex-col md:flex-row justify-between items-start md:items-center gap-2">
+                            <h2 class="text-xl font-bold text-gray-700">${phase.title}</h2>
+                            <div id="phase-total-${phase.id}" class="bg-white/70 px-4 py-1.5 rounded-full text-indigo-700 font-bold text-sm shadow-sm border border-white">
+                                สรุปช่วงวัยนี้: ${fmt.format(getPhaseTotal(phase.id))} ฿
+                            </div>
+                        </div>
+                        <div class="p-6">
+                            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+                                ${cardsHtml}
+                            </div>
+                        </div>
+                    </div>
+                `;
+                timelineSections.innerHTML += sectionHtml;
+            });
+        }
+
+        // Smart Cascade Logic
+        function handleCascadeInput(id, field, el, isSelect = false) {
+            // Force numbers only if not school name
+            if (field !== 'school' && !isSelect) {
+                el.value = el.value.replace(/[^0-9]/g, '');
+            }
+
+            const newValue = field === 'school' ? el.value : (Number(el.value) || 0);
+            const index = educationData.findIndex(d => d.id === id);
+            const phase = educationData[index].phase;
+            
+            // Get old value before the change
+            let oldStr = el.getAttribute('data-old');
+            if (oldStr === null || oldStr === undefined) oldStr = '';
+            const oldValue = field === 'school' ? oldStr : (Number(oldStr) || 0);
+
+            // Update Current
+            educationData[index][field] = newValue;
+            el.setAttribute('data-old', el.value);
+
+            // Cascade down the phase
+            for (let i = index + 1; i < educationData.length; i++) {
+                if (educationData[i].phase !== phase) break; // Stop at phase boundary
+
+                const nextVal = educationData[i][field];
+                
+                // If the next field is empty/0, OR it matched what the user just typed over, overwrite it.
+                if (nextVal === '' || nextVal === 0 || nextVal === oldValue) {
+                    educationData[i][field] = newValue;
+                    
+                    // Update DOM directly to preserve cursor focus
+                    const targetEl = document.getElementById(`${field}-${educationData[i].id}`);
+                    if (targetEl) {
+                        targetEl.value = (newValue === 0 && field !== 'school' && !isSelect) ? '' : newValue;
+                        targetEl.setAttribute('data-old', targetEl.value);
+                    }
+                } else {
+                    // Stop cascading if we hit a customized value
+                    break;
+                }
+            }
+
+            updateAllDOMTotals();
+            refreshDashboard();
+            saveData();
+        }
+
+        function toggleEntrance(id, isChecked) {
+            const index = educationData.findIndex(d => d.id === id);
+            educationData[index].hasEntrance = isChecked;
+            const wrap = document.getElementById(`entrance-wrap-${id}`);
+            const input = wrap.querySelector('input');
+            if (isChecked) {
+                wrap.classList.remove('opacity-40', 'pointer-events-none');
+                input.disabled = false;
+            } else {
+                wrap.classList.add('opacity-40', 'pointer-events-none');
+                input.disabled = true;
+                // Auto zero out if unchecked
+                input.value = '';
+                handleCascadeInput(id, 'entranceFee', input);
+            }
+            updateAllDOMTotals();
+            refreshDashboard();
+            saveData();
+        }
+
+        // Update all text totals without recreating HTML
+        function updateAllDOMTotals() {
+            educationData.forEach(level => {
+                const totalEl = document.getElementById(`total-${level.id}`);
+                if (totalEl) totalEl.innerText = `${fmt.format(calculateLevelTotal(level))} ฿`;
+            });
+            phases.forEach(phase => {
+                const phaseEl = document.getElementById(`phase-total-${phase.id}`);
+                if (phaseEl) phaseEl.innerText = `สรุปช่วงวัยนี้: ${fmt.format(getPhaseTotal(phase.id))} ฿`;
+            });
+        }
+
+        function refreshDashboard() {
+            let totalTuition = 0;
+            let totalEntrance = 0;
+            let totalExtra = 0;
+            const labels = [];
+            const tuitionData = [];
+            const entranceData = [];
+            const extraData = [];
+
+            educationData.forEach(level => {
+                labels.push(level.name);
+                const t = Number(level.termFee) * Number(level.terms);
+                const e = level.hasEntrance ? Number(level.entranceFee) : 0;
+                const ex = Number(level.extraFee);
+                totalTuition += t;
+                totalEntrance += e;
+                totalExtra += ex;
+                tuitionData.push(t);
+                entranceData.push(e);
+                extraData.push(ex);
+            });
+
+            const grandTotal = totalTuition + totalEntrance + totalExtra;
+            document.getElementById('grandTotalDisplay').innerText = `${fmt.format(grandTotal)} ฿`;
+            document.getElementById('totalTuitionDisplay').innerText = `${fmt.format(totalTuition)} ฿`;
+            document.getElementById('totalEntranceDisplay').innerText = `${fmt.format(totalEntrance)} ฿`;
+            document.getElementById('totalExtraDisplay').innerText = `${fmt.format(totalExtra)} ฿`;
+
+            renderChart(labels, tuitionData, entranceData, extraData);
+        }
+
+        function renderChart(labels, tuitionData, entranceData, extraData) {
+            const ctx = document.getElementById('costChart').getContext('2d');
+            if (costChart) costChart.destroy(); 
+            costChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        { label: 'ค่าเทอม (รายปี)', data: tuitionData, backgroundColor: '#60a5fa', borderRadius: 4 },
+                        { label: 'ค่าเรียนพิเศษ/อื่นๆ', data: extraData, backgroundColor: '#fbbf24', borderRadius: 4 },
+                        { label: 'ค่าแรกเข้า/มอบตัว', data: entranceData, backgroundColor: '#f472b6', borderRadius: 4 }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'top', labels: { font: { family: 'Prompt' } } },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) label += ': ';
+                                    if (context.parsed.y !== null) {
+                                        label += new Intl.NumberFormat('th-TH').format(context.parsed.y) + ' ฿';
+                                    }
+                                    return label;
+                                }
+                            },
+                            titleFont: { family: 'Prompt' },
+                            bodyFont: { family: 'Prompt' }
+                        }
+                    },
+                    scales: {
+                        x: { stacked: true, grid: { display: false }, ticks: { font: { family: 'Prompt', size: 10 } } },
+                        y: { 
+                            stacked: true, 
+                            border: { display: false },
+                            ticks: {
+                                font: { family: 'Prompt' },
+                                callback: function(value) {
+                                    return value >= 100000 ? (value / 1000000).toFixed(2) + 'M' : (value / 1000) + 'k';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        init();
+    </script>
+</body>
+</html>
